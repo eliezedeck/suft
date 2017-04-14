@@ -24,7 +24,8 @@ var (
 )
 
 type Params struct {
-	LocalAddr      string
+	LocalAddr string
+	// Bandwidth is in bytes/s
 	Bandwidth      int64
 	Mtu            int
 	IsServ         bool
@@ -64,8 +65,9 @@ func init() {
 
 func NewEndpoint(p *Params) (*Endpoint, error) {
 	set_debug_params(p)
-	if p.Bandwidth <= 0 || p.Bandwidth > 100 {
-		return nil, fmt.Errorf("bw->(0,100]")
+	maxspeed := int64(100 * 1024 * 1024)
+	if p.Bandwidth <= 0 || p.Bandwidth > maxspeed {
+		return nil, fmt.Errorf("bw->(0,%d]", maxspeed)
 	}
 	conn, err := net.ListenPacket("udp", p.LocalAddr)
 	if err != nil {
@@ -87,7 +89,7 @@ func NewEndpoint(p *Params) (*Endpoint, error) {
 		e.state = _S_EST1
 		e.idSeq = uint32(rand.Int31())
 	}
-	e.params.Bandwidth = p.Bandwidth << 20 // mbps to bps
+	e.params.Bandwidth = p.Bandwidth
 	e.udpconn.SetReadBuffer(_SO_BUF_SIZE)
 	go e.internal_listen()
 	return e, nil
