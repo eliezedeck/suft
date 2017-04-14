@@ -24,8 +24,7 @@ var (
 )
 
 type Params struct {
-	LocalAddr string
-	// Bandwidth is in bytes/s
+	LocalAddr      string
 	Bandwidth      int64
 	Mtu            int
 	IsServ         bool
@@ -65,9 +64,8 @@ func init() {
 
 func NewEndpoint(p *Params) (*Endpoint, error) {
 	set_debug_params(p)
-	maxspeed := int64(100 * 1024 * 1024)
-	if p.Bandwidth <= 0 || p.Bandwidth > maxspeed {
-		return nil, fmt.Errorf("bw->(0,%d]", maxspeed)
+	if p.Bandwidth <= 0 || p.Bandwidth > 100 {
+		return nil, fmt.Errorf("bw->(0,100]")
 	}
 	conn, err := net.ListenPacket("udp", p.LocalAddr)
 	if err != nil {
@@ -89,10 +87,16 @@ func NewEndpoint(p *Params) (*Endpoint, error) {
 		e.state = _S_EST1
 		e.idSeq = uint32(rand.Int31())
 	}
-	e.params.Bandwidth = p.Bandwidth
+	e.params.Bandwidth = p.Bandwidth << 20 // mbps to bps
 	e.udpconn.SetReadBuffer(_SO_BUF_SIZE)
 	go e.internal_listen()
 	return e, nil
+}
+
+// SetBandwidthBytesPerSecond allows setting the bandwidth in fine-grained bytes per second. You will usually call this
+// after creating a NewEndpoing(...), and if the MB/s step does not suite your usecase.
+func (e *Endpoint) SetBandwidthBytesPerSecond(bps int64) {
+	e.params.Bandwidth = bps
 }
 
 func (e *Endpoint) internal_listen() {
