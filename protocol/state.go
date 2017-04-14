@@ -107,7 +107,7 @@ func NewConn(e *Endpoint, dest *net.UDPAddr, id connID) *Conn {
 	c.bandwidth = p.Bandwidth
 	c.fastRetransmit = p.FastRetransmit
 	c.flatTraffic = p.FlatTraffic
-	c.mss = _MSS
+	c.mss = e.params.Mtu - _AH_SIZE
 	if dest.IP.To4() == nil {
 		// typical ipv6 header length=40
 		c.mss -= 20
